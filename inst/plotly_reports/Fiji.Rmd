@@ -1,0 +1,132 @@
+---
+title: "`crosstalk` Tutorial"
+output: 
+    html_document:
+      toc: true
+      toc_float: true
+      theme: cosmo
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, error = FALSE, out.width = "100%")
+```
+
+```{r pkg-load}
+library(dplyr)
+library(ggplot2)
+library(plotly)
+library(DT)
+library(leaflet)
+library(crosstalk)
+library(checkdown)
+```
+
+```{r data-load}
+trips <- 
+  readRDS("trips_apr.rds") %>%
+  select(station_name, station_id, year_2019, pct_change, prop_wend_2019) %>%
+  mutate_at(vars(pct_change, prop_wend_2019), round, 2)
+stations <- readRDS("stations.rds")
+```
+
+## Motivation
+
+This tutorial will help you learn to use the `crosstalk` package to link different `htmlwidgets`. After completing this tutorial, you will be able to build an application like the one below, which visualizes the number of rides at a sample of Chicago train stations in 2019 versus 2020. 
+
+Click and drag a subset of points on the scatterplot below to see how the map and table are dynamically filtered.
+
+```{r full-example, out.width = "80%"}
+
+# create SharedData ----
+trips_ct <- SharedData$new(trips, key = ~station_id, group = "loc")
+trips_sub_ct <- SharedData$new(trips[,c("station_name", "station_id", "pct_change")], 
+                               key = ~station_id, group = "loc")
+
+# create individual widgets ----
+
+# map
+
+# table
+dt <- datatable(trips_sub_ct,
+                fillContainer = TRUE,
+                rownames = FALSE,
+                colnames = c("Station", "ID", "% Change"),
+                options = list(autowidth = TRUE))
+
+# plot
+gg <- ggplot(trips_ct) +
+    aes(
+      x = prop_wend_2019, 
+      y = pct_change,
+      col = pct_change,
+      name = station_name) +
+    geom_point() +
+    guides(col = FALSE) +
+  labs(
+    x = "% Apr 2019 Trips on Weekend",
+    y = "% Change Apr 2020 vs 2019"
+  ) +
+  scale_x_continuous(labels = scales::percent) +
+  scale_y_continuous(labels = scales::percent)
+gg_ly <- 
+  ggplotly(gg, tooltip = "name") %>%
+  highlight(on = "plotly_selected",
+            off = "plotly_doubleclick")
+
+# create final output ----
+bscols(gg_ly,  dt, widths = c(6, 6))
+```
+
+```{r}
+rm(list = ls())
+trips <- 
+  readRDS("trips_apr.rds") %>%
+  select(station_name, station_id, year_2019, pct_change, prop_wend_2019) %>%
+  mutate_at(vars(pct_change, prop_wend_2019), round, 2)
+
+# make SharedData object ----
+trips_ct <- SharedData$new(trips, key = ~station_id)
+
+# make ggplots using SharedData object ----
+gg_year <-
+  ggplot(trips_ct) +
+  aes(x = year_2019, y = pct_change, col = pct_change) +
+  geom_point()
+
+# make htmlwidgets ----
+gg_year_ly <- ggplotly(gg_year)
+dt_stations <- datatable(trips_ct)
+
+# compose output ----
+bscols(gg_year_ly,
+dt_stations)
+```
+
+
+```{r}
+rm(list = ls())
+d1 <- data.frame(
+  idnumeric = 1:length(letters),
+  id = letters,
+  x = rnorm(length(letters)),
+  y = runif(length(letters)))
+
+d1shared <- SharedData$new(d1, key = ~id )
+d1table <- datatable(d1shared)
+
+p1plot <- ggplot(d1shared) + aes(x = x,y = y) + geom_point()
+pp1plot_p <- ggplotly(p1plot) 
+
+#pp1plot_p <- plotly::plot_ly(d1shared, x = ~x ,y = ~y) |> add_markers() |> highlight("plotly_click")
+#pp2plot_p <- plotly::plot_ly(d1shared, x = ~x ,y = ~y) 
+bscols(pp1plot_p, d1table)
+
+
+```
+
+
+
+
+
