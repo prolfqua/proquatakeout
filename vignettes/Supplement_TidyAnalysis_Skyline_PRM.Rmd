@@ -7,7 +7,7 @@ output:
   pdf_document: default
 vignette: >
   %\VignetteIndexEntry{Supplement - Data preprocessing for PRM}
-  %\VignetteEncoding{UTF-8}
+  %\VignetteEncoding{UTF-8}Ω
   %\VignetteEngine{knitr::rmarkdown}
 editor_options: 
   chunk_output_type: console
