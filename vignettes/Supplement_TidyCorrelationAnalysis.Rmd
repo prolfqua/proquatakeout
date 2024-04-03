@@ -187,7 +187,7 @@ First mark de-correlated transitions using `mark_decorelated`.
 
 ```{r markdecorellated}
 qvalFiltV <- transform_work_intensity(qvalFiltV$data, config, log2)
-xx <- mark_decorelated(qvalFiltV, config, minCorrelation = 0.5 )
+xx <- proquatakeout::mark_decorelated(qvalFiltV, config, minCorrelation = 0.5 )
 mean(xx$srm_decorelated)
 
 ```
@@ -218,8 +218,8 @@ print(plot_heatmap_cor(qvalFiltCorr, config))
 ### Rank precursors by intensity and aggregate top 3 precursors 
 
 ```{r rankprec}
-qvalFiltImputed <- impute_correlationBased(qvalFiltCorr, config)
-qvalFiltImputed <- rank_peptide_by_intensity(qvalFiltImputed, config)
+qvalFiltImputed <- proquatakeout::impute_correlationBased(qvalFiltCorr, config)
+qvalFiltImputed <- prolfqua::rank_peptide_by_intensity(qvalFiltImputed, config)
 
 ```
 
@@ -229,7 +229,7 @@ qvalFiltImputed <- rank_peptide_by_intensity(qvalFiltImputed, config)
 mean_na <- function(x, name = FALSE){
   if(name){return("mean_na")};
   mean(x,na.rm = TRUE)}
-proteinIntensities <- aggregate_intensity_topN(qvalFiltImputed,
+proteinIntensities <- prolfqua::aggregate_intensity_topN(qvalFiltImputed,
                                                config,
                                                .func = mean_na,
                                                N = 3)$data

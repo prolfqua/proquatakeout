@@ -12,7 +12,7 @@ copy_mixed_model_analysis_script <- function(workdir = getwd()){
                   "rmarkdown/mixed_model_analysis_script_Report.Rmd",
                   "rmarkdown/bibliography.bib"
   )
-  scriptCopyHelperVec(runscripts, workdir = workdir)
+  prolfqua::scriptCopyHelperVec(runscripts, workdir = workdir)
 }
 
 

@@ -37,7 +37,7 @@
 mark_decorelated <- function(data , config, minCorrelation = 0.7){
   qvalFiltX <- data |>  dplyr::group_by_at(config$table$hierarchy_keys()[1]) |> tidyr::nest()
   qvalFiltX <- qvalFiltX |>
-    dplyr::mutate(spreadMatrix = map(data, response_as_matrix, config))
+    dplyr::mutate(spreadMatrix = purrr::map(data, response_as_matrix, config))
   #HLfigs2 <- qvalFiltX |>
   #  dplyr::mutate(srmDecor = map(.data$spreadMatrix, .decorelatedPly,  minCorrelation))
   HLfigs2 <- qvalFiltX
@@ -97,7 +97,7 @@ simpleImpute <- function(data){
 impute_correlationBased <- function(x , config){
   x <- complete_cases(x, config)
   nestedX <- x |>  dplyr::group_by_at(config$table$hierarchy_keys_depth()) |> tidyr::nest()
-  nestedX <- nestedX |> dplyr::mutate(spreadMatrix = map(data, response_as_matrix, config))
+  nestedX <- nestedX |> dplyr::mutate(spreadMatrix = purrr::map(data, response_as_matrix, config))
 
   response_matrix_as_tibble <- function(x,config){
     x <- dplyr::bind_cols(
@@ -107,9 +107,9 @@ impute_correlationBased <- function(x , config){
     tidyr::gather(x,key = !!config$table$sampleName, value = "srm_ImputedIntensity", 2:ncol(x))
   }
 
-  nestedX <- nestedX |> dplyr::mutate(imputed = map(.data$spreadMatrix, simpleImpute))
+  nestedX <- nestedX |> dplyr::mutate(imputed = purrr::map(.data$spreadMatrix, simpleImpute))
 
-  nestedX <- nestedX |> dplyr::mutate(imputed = map(.data$imputed, response_matrix_as_tibble, config))
+  nestedX <- nestedX |> dplyr::mutate(imputed = purrr::map(.data$imputed, response_matrix_as_tibble, config))
   unnest_res <- nestedX |> dplyr::select(config$table$hierarchy_keys_depth(), "imputed") |> tidyr::unnest(cols = .data$imputed)
   unnest_res <- unnest_res |> tidyr::separate("row",config$table$hierarchy_keys()[-1], sep = "~lfq~" )
 
