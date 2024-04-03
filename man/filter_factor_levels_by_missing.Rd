@@ -22,7 +22,7 @@ Removes measurments with more than some percentage of missing values
 \examples{
 
 
-bb <- prolfqua_data('data_spectronautDIA250_A')
+bb <- prolfqua::prolfqua_data('data_spectronautDIA250_A')
 config <- bb$config_f()
 analysis <- bb$analysis(bb$data, bb$config_f())
 config$parameter$min_nr_of_notNA  <- 20

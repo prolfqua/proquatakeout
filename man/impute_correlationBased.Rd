@@ -18,7 +18,7 @@ Assumes the peptide intensities are correlation assumption
 
 
 
-bb <- prolfqua_data('data_ionstar')$normalized()
+bb <- prolfqua::prolfqua_data('data_ionstar')$normalized()
 bb$config <- old2new(bb$config)
 config <- bb$config$clone(deep=TRUE)
 data <- bb$data
