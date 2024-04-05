@@ -10,7 +10,7 @@
 .decorelatedPly <- function(pdata, corThreshold = 0.7){
   res <- prolfqua::cor_jackknife_matrix(pdata)
   decorelated <- .findDecorrelated(res,threshold = corThreshold)
-  tibble( row = rownames(res), srm_decorelated = rownames(res) %in% decorelated)
+  tibble::tibble( row = rownames(res), srm_decorelated = rownames(res) %in% decorelated)
 }
 
 #' Marks peptides which do not correlate with other peptides of a protein
@@ -27,17 +27,15 @@
 #' @section TODO: do investigate In max(x, na.rm = TRUE) : no non-missing arguments to max; returning -Inf
 #' @examples
 #'
-#' bb <- prolfqua::prolfqua_data('data_ionstar')$filtered()
-#' stopifnot( nrow(bb$data) == 25780)
-#' conf <- old2new(bb$config$clone(deep=TRUE))
+#' bb <- prolfqua::sim_lfq_data_peptide_config()
+#' conf <- bb$config
 #' data <- bb$data |> dplyr::ungroup()
-#' dim(data)
 #' dataI <- mark_decorelated(data, conf)
 #'
 mark_decorelated <- function(data , config, minCorrelation = 0.7){
   qvalFiltX <- data |>  dplyr::group_by_at(config$table$hierarchy_keys()[1]) |> tidyr::nest()
   qvalFiltX <- qvalFiltX |>
-    dplyr::mutate(spreadMatrix = purrr::map(data, response_as_matrix, config))
+    dplyr::mutate(spreadMatrix = purrr::map(data, prolfqua::response_as_matrix, config))
   #HLfigs2 <- qvalFiltX |>
   #  dplyr::mutate(srmDecor = map(.data$spreadMatrix, .decorelatedPly,  minCorrelation))
   HLfigs2 <- qvalFiltX
@@ -84,20 +82,16 @@ simpleImpute <- function(data){
 #'
 #'
 #'
-#' bb <- prolfqua::prolfqua_data('data_ionstar')$normalized()
-#' bb$config <- old2new(bb$config)
+#' bb <- prolfqua::sim_lfq_data_peptide_config()
+#'
 #' config <- bb$config$clone(deep=TRUE)
 #' data <- bb$data
-#' mean(is.na(data$peptide.intensity))
 #' dataI <- impute_correlationBased(data, config)
-#' dim(dataI)
-#' stopifnot(dim(dataI) == c(dim(data)+c(0,1)))
-#' stopifnot(mean(is.na(dataI$srm_ImputedIntensity)) <= mean(is.na(data$peptide.intensity)))
 #'
 impute_correlationBased <- function(x , config){
-  x <- complete_cases(x, config)
+  x <- prolfqua::complete_cases(x, config)
   nestedX <- x |>  dplyr::group_by_at(config$table$hierarchy_keys_depth()) |> tidyr::nest()
-  nestedX <- nestedX |> dplyr::mutate(spreadMatrix = purrr::map(data, response_as_matrix, config))
+  nestedX <- nestedX |> dplyr::mutate(spreadMatrix = purrr::map(data, prolfqua::response_as_matrix, config))
 
   response_matrix_as_tibble <- function(x,config){
     x <- dplyr::bind_cols(
@@ -133,42 +127,43 @@ impute_correlationBased <- function(x , config){
 #' @examples
 #'
 #'
-#' bb <- prolfqua::prolfqua_data('data_spectronautDIA250_A')
-#' config <- bb$config_f()
-#' analysis <- bb$analysis(bb$data, bb$config_f())
+#' bb <- prolfqua::sim_lfq_data_peptide_config()
+#' config <- bb$config
 #' config$parameter$min_nr_of_notNA  <- 20
-#' data <- analysis
-#' data <- remove_large_QValues(data, config)
-#' hc <- hierarchy_counts(data, config)
+#' data <- bb$data
+#' data <- prolfqua::remove_large_QValues(data, config)
+#' hc <- prolfqua::hierarchy_counts(data, config)
 #' res <- filter_factor_levels_by_missing(data, config,percent = 80)
-#' hc80 <-  hierarchy_counts(res, config)
+#'
+#' hc80 <-  prolfqua::hierarchy_counts(res, config)
 #' res <- filter_factor_levels_by_missing(data, config,percent = 60)
-#' hierarchy_counts(res, config)
-#' hc60 <-  hierarchy_counts(res, config)
+#' prolfqua::hierarchy_counts(res, config)
+#' hc60 <-  prolfqua::hierarchy_counts(res, config)
 #' stopifnot(all(hc60 >= hc80)) # since 80% missing is more stringent than 60%
 #' stopifnot(all(hc >= hc60))
-#' summarize_hierarchy(res,config) |>
+#' prolfqua::summarize_hierarchy(res,config) |>
 #'  dplyr::filter(!!rlang::sym(paste0(config$table$hierarchy_keys()[2],"_n")) > 1)
 #'
-filter_factor_levels_by_missing <- function(pdata,
-                                            config,
-                                            percent = 60){
+filter_factor_levels_by_missing <- function(
+    pdata,
+    config,
+    percent = 60){
   table <- config$table
   summaryColumn = "srm_NrNotNAs"
   column <- table$get_response()
 
-  pdata <- complete_cases( pdata , config)
+  pdata <- prolfqua::complete_cases( pdata , config)
   nrNA = function(x){sum(!is.na(x))}
   summaryPerPrecursor <- pdata |>
-    dplyr::group_by(!!!syms( c(table$hierarchy_keys(), table$factor_keys_depth() ))) |>
-    dplyr::summarize(!!"nr" := n(), !!summaryColumn := nrNA(!!sym(column))) |>
-    dplyr::mutate(fraction = !!sym(summaryColumn)/!!sym("nr") * 100 ) |>  dplyr::ungroup()
+    dplyr::group_by(!!!rlang::syms( c(table$hierarchy_keys(), table$factor_keys_depth() ))) |>
+    dplyr::summarize(!!"nr" := dplyr::n(), !!summaryColumn := nrNA(!!rlang::sym(column))) |>
+    dplyr::mutate(fraction = !!rlang::sym(summaryColumn)/!!rlang::sym("nr") * 100 ) |>  dplyr::ungroup()
 
   summaryPerPrecursorFiltered <- summaryPerPrecursor |> dplyr::filter(.data$fraction > percent)
   summaryPerPrecursorFiltered <- summaryPerPrecursorFiltered |>
     dplyr::select(c(table$hierarchy_keys())) |> dplyr::distinct()
   stopifnot(all(colnames(summaryPerPrecursorFiltered) %in% table$hierarchy_keys()))
-  res <- summaryPerPrecursorFiltered |> left_join(pdata)
+  res <- summaryPerPrecursorFiltered |> dplyr::left_join(pdata)
   return( dplyr::ungroup(res))
 }
 

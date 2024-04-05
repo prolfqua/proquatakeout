@@ -22,21 +22,21 @@ Removes measurments with more than some percentage of missing values
 \examples{
 
 
-bb <- prolfqua::prolfqua_data('data_spectronautDIA250_A')
-config <- bb$config_f()
-analysis <- bb$analysis(bb$data, bb$config_f())
+bb <- prolfqua::sim_lfq_data_peptide_config()
+config <- bb$config
 config$parameter$min_nr_of_notNA  <- 20
-data <- analysis
-data <- remove_large_QValues(data, config)
-hc <- hierarchy_counts(data, config)
+data <- bb$data
+data <- prolfqua::remove_large_QValues(data, config)
+hc <- prolfqua::hierarchy_counts(data, config)
 res <- filter_factor_levels_by_missing(data, config,percent = 80)
-hc80 <-  hierarchy_counts(res, config)
+
+hc80 <-  prolfqua::hierarchy_counts(res, config)
 res <- filter_factor_levels_by_missing(data, config,percent = 60)
-hierarchy_counts(res, config)
-hc60 <-  hierarchy_counts(res, config)
+prolfqua::hierarchy_counts(res, config)
+hc60 <-  prolfqua::hierarchy_counts(res, config)
 stopifnot(all(hc60 >= hc80)) # since 80\% missing is more stringent than 60\%
 stopifnot(all(hc >= hc60))
-summarize_hierarchy(res,config) |>
+prolfqua::summarize_hierarchy(res,config) |>
  dplyr::filter(!!rlang::sym(paste0(config$table$hierarchy_keys()[2],"_n")) > 1)
 
 }

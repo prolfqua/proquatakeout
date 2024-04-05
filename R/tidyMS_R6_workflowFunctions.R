@@ -26,38 +26,35 @@
 #'
 workflow_correlation_preprocessing_protein_intensities <- function(
     pdata, config, minCorrelation = 0.7){
-  stat_input <- hierarchy_counts(pdata, config)
+  stat_input <- prolfqua::hierarchy_counts(pdata, config)
 
-  data_NA_QVal <- filter_byQValue(pdata, config)
-  stat_qval <- hierarchy_counts(data_NA_QVal, config)
+  data_NA_QVal <- prolfqua::filter_byQValue(pdata, config)
+  stat_qval <- prolfqua::hierarchy_counts(data_NA_QVal, config)
 
   # remove transitions with large numbers of NA's
-  data_NA_QVal <- rank_by_NA(data_NA_QVal, config)
+  data_NA_QVal <- prolfqua::rank_by_NA(data_NA_QVal, config)
   data_NA_QVal <- data_NA_QVal |> dplyr::filter(.data$srm_NrNotNAs > config$parameter$min_nr_of_notNA)
   if (nrow(data_NA_QVal) == 0) {
     warning("no rows left after filtering for min_nr_of_notNA")
   }
-  stat_min_nr_of_notNA <- hierarchy_counts(data_NA_QVal, config)
+  stat_min_nr_of_notNA <- prolfqua::hierarchy_counts(data_NA_QVal, config)
 
   # remove single hit wonders
-  data_NA_QVal <- filter_proteins_by_peptide_count(data_NA_QVal, config)$data
-
-  stat_min_peptides_protein  <- hierarchy_counts(data_NA_QVal, config)
-
+  data_NA_QVal <- prolfqua::filter_proteins_by_peptide_count(data_NA_QVal, config)$data
+  stat_min_peptides_protein  <- prolfqua::hierarchy_counts(data_NA_QVal, config)
   # filter decorrelated.
-
-  data_NA_QVal <- transform_work_intensity(data_NA_QVal, config, log2)
+  data_NA_QVal <- prolfqua::transform_work_intensity(data_NA_QVal, config, log2)
   data_NA_QVal <- mark_decorelated(data_NA_QVal, config, minCorrelation = minCorrelation)
   keepCorrelated <- dplyr::filter(data_NA_QVal, .data$srm_decorelated == FALSE)
 
-  stat_correlated  <- hierarchy_counts(keepCorrelated, config)
+  stat_correlated  <- prolfqua::hierarchy_counts(keepCorrelated, config)
 
   # TODO check if you are not aggregating log transformed intensities
   # rank precursors by intensity
-  keepCorrelated <- rank_peptide_by_intensity(keepCorrelated, config)
+  keepCorrelated <- prolfqua::rank_peptide_by_intensity(keepCorrelated, config)
   qvalFiltImputed <- impute_correlationBased(keepCorrelated, config)
-  mean_na <- function(x, name=FALSE) {if(name){return("mean_na")};mean(x, na.rm = TRUE)}
-  proteinIntensities <- aggregate_intensity_topN(qvalFiltImputed, config, .func = mean_na, N = 3)
+  mean_na <- function(x, name=FALSE) {if (name) {return("mean_na")};mean(x, na.rm = TRUE)}
+  proteinIntensities <- prolfqua::aggregate_intensity_topN(qvalFiltImputed, config, .func = mean_na, N = 3)
 
   # collect stats
   stats <- list(stat_input = stat_input,
@@ -67,7 +64,7 @@ workflow_correlation_preprocessing_protein_intensities <- function(
                 stat_correlated = stat_correlated
   )
   x <- dplyr::bind_rows(stats)
-  stats <- add_column(x, processing = names(stats),.before = 1)
+  stats <- tibble::add_column(x, processing = names(stats),.before = 1)
 
 
   return(list(data = proteinIntensities$data, stats = stats, newconfig = proteinIntensities$newconfig))
@@ -93,28 +90,28 @@ workflow_correlation_preprocessing_protein_intensities <- function(
 #' res <- workflow_corr_filter_impute(data,config)
 #'
 workflow_corr_filter_impute <- function(pdata, config, minCorrelation =0.6){
-  stat_input <- hierarchy_counts(pdata, config)
+  stat_input <- prolfqua::hierarchy_counts(pdata, config)
 
-  data_NA_QVal <- filter_byQValue(pdata, config)
-  stat_qval <- hierarchy_counts(data_NA_QVal, config)
+  data_NA_QVal <- prolfqua::filter_byQValue(pdata, config)
+  stat_qval <- prolfqua::hierarchy_counts(data_NA_QVal, config)
 
   # remove transitions with large numbers of NA's
-  data_NA_QVal <- rank_by_NA(data_NA_QVal, config)
+  data_NA_QVal <- prolfqua::rank_by_NA(data_NA_QVal, config)
   data_NA_QVal <- data_NA_QVal |> dplyr::filter(.data$srm_NrNotNAs > config$parameter$min_nr_of_notNA)
-  stat_min_nr_of_notNA <- hierarchy_counts(data_NA_QVal, config)
+  stat_min_nr_of_notNA <- prolfqua::hierarchy_counts(data_NA_QVal, config)
 
   # remove single hit wonders
-  data_NA_QVal <- filter_proteins_by_peptide_count(data_NA_QVal, config)$data
+  data_NA_QVal <- prolfqua::filter_proteins_by_peptide_count(data_NA_QVal, config)$data
 
-  stat_min_peptides_protein  <- hierarchy_counts(data_NA_QVal, config)
+  stat_min_peptides_protein  <- prolfqua::hierarchy_counts(data_NA_QVal, config)
 
   # filter decorrelated.
-  data_NA_QVal <- transform_work_intensity(data_NA_QVal, config, log2)
+  data_NA_QVal <- prolfqua::transform_work_intensity(data_NA_QVal, config, log2)
   data_NA_QVal <- mark_decorelated(data_NA_QVal, config, minCorrelation = minCorrelation)
   keepCorrelated <- dplyr::filter(data_NA_QVal, .data$srm_decorelated == FALSE)
 
-  stat_correlated  <- hierarchy_counts(keepCorrelated, config)
-  keepCorrelated <- rank_peptide_by_intensity(keepCorrelated, config)
+  stat_correlated  <- prolfqua::hierarchy_counts(keepCorrelated, config)
+  keepCorrelated <- prolfqua::rank_peptide_by_intensity(keepCorrelated, config)
   qvalFiltImputed <- impute_correlationBased(keepCorrelated, config)
 
 
@@ -125,7 +122,7 @@ workflow_corr_filter_impute <- function(pdata, config, minCorrelation =0.6){
                 stat_correlated = stat_correlated
   )
   x <- dplyr::bind_rows(stats)
-  stats <- add_column(x, processing = names(stats),.before = 1)
+  stats <- tibble::add_column(x, processing = names(stats),.before = 1)
   return(qvalFiltImputed)
 }
 
@@ -140,19 +137,17 @@ workflow_corr_filter_impute <- function(pdata, config, minCorrelation =0.6){
 #' @family deprecated
 #' @examples
 #'
-#' rm(list=ls())
-#' bb <- prolfqua::prolfqua_data('data_ionstar')$filtered()
-#' bb$config <- old2new(bb$config)
-#' stopifnot(nrow(bb$data) == 25780)
+#'
+#' bb <- prolfqua::sim_lfq_data_peptide_config()
 #' config <- bb$config$clone(deep=TRUE)
 #' data <- bb$data
 #' data$nr_peptide_Id_IN_protein_Id <- NULL
 #'
-#' hierarchy_counts(data, config)
+#' prolfqua::hierarchy_counts(data, config)
 #' tmp <- workflow_DIA_NA_preprocessing(data, config)
-#' hierarchy_counts(tmp$data, config)
+#' prolfqua::hierarchy_counts(tmp$data, config)
 #' tmp <- workflow_DIA_NA_preprocessing(data, config, percent=70)
-#' hierarchy_counts(tmp$data, config)
+#' prolfqua::hierarchy_counts(tmp$data, config)
 #' stopifnot(FALSE == (dplyr::is_grouped_df(tmp$data)))
 #'
 workflow_DIA_NA_preprocessing <- function(pdata,
@@ -162,18 +157,18 @@ workflow_DIA_NA_preprocessing <- function(pdata,
                                           factor_level = 1,
                                           min_peptides_protein = config$parameter$min_peptides_protein)
 {
-  stat_input <- hierarchy_counts(pdata, config)
+  stat_input <- prolfqua::hierarchy_counts(pdata, config)
 
-  data_NA_QVal <- filter_byQValue(pdata, config)
-  stat_qval <- hierarchy_counts(data_NA_QVal, config)
+  data_NA_QVal <- prolfqua::filter_byQValue(pdata, config)
+  stat_qval <- prolfqua::hierarchy_counts(data_NA_QVal, config)
 
   resNACondition <- filter_factor_levels_by_missing(data_NA_QVal,
                                                     config,
                                                     percent = percent)
 
-  stat_naFilter <- hierarchy_counts(resNACondition, config)
-  protID <- summarize_hierarchy(resNACondition,config) |>
-    dplyr::filter(!!sym(paste0(config$table$hierarchy_keys()[hierarchy_level],"_n"))
+  stat_naFilter <- prolfqua::hierarchy_counts(resNACondition, config)
+  protID <- prolfqua::summarize_hierarchy(resNACondition,config) |>
+    dplyr::filter(!!rlang::sym(paste0(config$table$hierarchy_keys()[hierarchy_level],"_n"))
                   >= min_peptides_protein)
 
   data_NA_QVal_condition <- protID |>
@@ -181,8 +176,8 @@ workflow_DIA_NA_preprocessing <- function(pdata,
     dplyr::inner_join(resNACondition)
 
   # Complete cases
-  data_NA_QVal_condition <- complete_cases( data_NA_QVal_condition , config)
-  stat_peptidFitler <- hierarchy_counts(data_NA_QVal_condition, config)
+  data_NA_QVal_condition <- prolfqua::complete_cases( data_NA_QVal_condition , config)
+  stat_peptidFitler <- prolfqua::hierarchy_counts(data_NA_QVal_condition, config)
   stats = list(stat_input = stat_input,
                stat_qval = stat_qval,
                stat_naFilter = stat_naFilter,
